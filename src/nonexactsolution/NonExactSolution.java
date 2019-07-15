@@ -12,10 +12,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.ListIterator;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.util.Pair;
 
 public class NonExactSolution {
 
@@ -33,16 +35,18 @@ public class NonExactSolution {
             
         //Using user's input 
         int array[] = getUserInput();
+
         graph = new Graph(array[0], array[1]);
         
         generateProblemInstance();
-
+        
         long start = System.nanoTime();
+        
         generateSolution();
+        
         long finish = System.nanoTime();
-
-
-        System.out.println("Time elapsed: " + (finish-start)/1000000.00 + " seconds");       
+    
+        System.out.println("Time elapsed: " + ((finish-start)/1000000.00));
                 
     }
     
@@ -75,20 +79,32 @@ public class NonExactSolution {
      * Carry out Step 1 - 4 as shown below to determine if a clique exists
      * @return true if clique exists and vice versa
      */
-    private static boolean generateSolution() 
+    public static int generateSolution() 
     {
         System.out.print("\n");
         printSpecialLine(50, "-");
         System.out.print("\n                SOLUTION DETAILS\n");
         printSpecialLine(50, "-");
-             
+        System.out.println("\n");
+        
+        /*graph = null;
+        newTempList.clear();
+        temporaryPotentialCliqueGraph = null;
+        edgesToCheck.clear();
+        newEdges.clear();*/
+        
+        //graph = g;
+        
+        //System.out.println("NON-EXACT SOLUTION!!!");
+        //generateProblemInstance();
+        
          //Step 1: Check if graph has minimum edges to form k-clique
-        if (!minimumEdgesExists())
-            return false;
+        //if (!minimumEdgesExists())
+            //return 0;
         
         // Step 2: Check if graph has minimum number of nodes with minimum number of edges
-        if(!minimumNodesWithMinimumEdgesExists())
-            return false;
+        //if(!minimumNodesWithMinimumEdgesExists())
+            //return 0;
         
         // Step 3: Check if the top 10 edges can form a clique by randomizing the node 100 times
         return cliqueExists();
@@ -113,7 +129,7 @@ public class NonExactSolution {
         else
         {
             System.out.format("\nStage 1: Fail. %d edge(s) are not suffient to form a %d-clique. At least %d edges are required.\n", 
-                    graph.getEdgesTable().length, graph.getCliqueSize(), min);
+                   graph.getEdgesTable().length, graph.getCliqueSize(), min);
             return false;
         }
     }
@@ -148,13 +164,18 @@ public class NonExactSolution {
      * Check if clique exists based on formed combinations
      * @return true if clique exists and vice versa
      */
-    public static boolean cliqueExists()
+    public static int cliqueExists()
     {
         ArrayList<Node> oriNodeList = graph.getNodeList();
         ArrayList<Node> tempNodeList = new ArrayList<>();
-        int[] array1 = new int[graph.getCliqueSize()];
-        int[] array2 = new int[graph.getCliqueSize()];
-        int[] array3 = new int[graph.getGraphSize() - graph.getCliqueSize()];
+        ArrayList<int[]> solutionList = new ArrayList<>();
+        int[] bestSolution = new int[graph.getCliqueSize()];
+        boolean bestSolutionExists = false;
+        int maxClique = graph.getCliqueSize() - 3;
+        int minClique = graph.getCliqueSize() - 3;
+        int[] candidateSolution = new int[graph.getCliqueSize()];
+        int[] candidateSolutionCopy = new int[graph.getCliqueSize()];
+        int[] nonSelectedNodes = new int[graph.getGraphSize() - graph.getCliqueSize()];
         
         Collections.sort(oriNodeList, new Comparator<Node>()
         {
@@ -188,71 +209,187 @@ public class NonExactSolution {
         {
             if (first)
             {
+                //System.out.println("CANDIDATE SOLUTION 1\n\n");
                 for (int i = 0; i < graph.getCliqueSize(); i++)
                 {
-                    array1[i] = tempNodeList.get(i).getNodeID();
-                    array2[i] = tempNodeList.get(i).getNodeID();
+                    candidateSolution[i] = tempNodeList.get(i).getNodeID();
+                    candidateSolutionCopy[i] = tempNodeList.get(i).getNodeID();
+                    bestSolution[i] = tempNodeList.get(i).getNodeID();
                 }
                 
                 
                 for(int j = 0, i = graph.getCliqueSize(); i < graph.getGraphSize(); i++, j++)
                 {
-                    array3[j] = tempNodeList.get(i).getNodeID();
+                    nonSelectedNodes[j] = tempNodeList.get(i).getNodeID();
                 }
-                
+
+                minClique = 3;
                 first = false;
             }
             
             else
-            {        
-                Random rand = new Random();      
-                int min = 0;
-                int max1 = array1.length - 1;
-                int max2 = array3.length - 1;
-
-                int randomNum1 =  rand.nextInt((max1 - min) + 1) + min;
-                int randomNum2 =  rand.nextInt((max2 - min) + 1) + min;
+            {   
+                boolean repeat = false;
                 
-                //System.out.println("Swapping " + array1[randomNum1] + " with " + array3[randomNum2]);
-                
-                int temp = array1[randomNum1];
-                array1[randomNum1] = array3[randomNum2];
-                array3[randomNum2] = temp;
-                
-            }
+                do
+                {               
+                    repeat = false;
+                    //System.out.println("CANDIDATE SOLUTION " + (loop_counter + 1 ) + "\n\n");
 
-            int counter = 0;
+                    Random rand = new Random();      
+                    int min = 0;
+                    int max1 = candidateSolution.length - 1;
+                    int max2 = nonSelectedNodes.length - 1;
 
-            for (int k = 0; k < array1.length; k++)
-            {
-                //System.out.println("Checking node " + array1[k]);
+                    int randomNum1 =  rand.nextInt((max1 - min) + 1) + min;
+                    int randomNum2 =  rand.nextInt((max2 - min) + 1) + min;
 
-                for (int l = 0; l < array2.length; l++)
-                {
-                    if (k != l)
-                    {
-                        if (valueExistsInArrayList(array1[k], getEdgeListFromNode(array2[l])))
+                    //System.out.println("Swapping " + candidateSolution[randomNum1] + " with " + nonSelectedNodes[randomNum2]);
+
+                    int temp = candidateSolution[randomNum1];
+                    candidateSolution[randomNum1] = nonSelectedNodes[randomNum2];
+                    nonSelectedNodes[randomNum2] = temp;
+                    
+                    ListIterator<int[]> 
+                    iterator = solutionList.listIterator(); 
+
+                    while (iterator.hasNext()) 
+                    { 
+                        if(iterator.next().equals(candidateSolution))
                         {
-                            //System.out.println("Check if node " + array1[k] + " is in edge list of node " + array2[l]);
-                            counter++;
+                            repeat = true;
+                            break;
                         }
-                    }
+                    } 
+            
+                } while(repeat == true);               
+                
+                minClique = maxClique;
+            }
+            
+            solutionList.add(candidateSolution.clone());
+            Pair<Integer, int[]> p = greedySearch(candidateSolution, candidateSolutionCopy, minClique);
+                
+            if(p.getKey() == graph.getCliqueSize())
+            {
+                graph.printNodeDetails();
+                bestSolution = p.getValue().clone();
+                System.out.println("Best Solution with " + graph.getCliqueSize() + "-Clique found!");
+                System.out.println(Arrays.toString(bestSolution));
+                return graph.getCliqueSize();
+            }
+            
+            else if(p.getKey() > maxClique)
+            {
+                maxClique = p.getKey();
+                bestSolution = p.getValue().clone();
+                bestSolutionExists = true;
+                //System.out.println(Arrays.toString(bestSolution));
+            }
+            
+            loop_counter++;    
+        }
+        
+        //System.out.println("Stage 3: " + graph.getCliqueSize() + "-Clique not found!.");
+        System.out.print("Best solution with " + bestSolution.length + "-clique found: ");
+        System.out.println(Arrays.toString(bestSolution));
+    
+        if (bestSolutionExists)
+            return maxClique;
+        else
+            return 0;
+    }
+    
+    public static Pair<Integer, int[]> greedySearch(int[] candidateSolution, int[] candidateSolutionCopy, int minClique)
+    {
+        // Check if candidateSolution contains k-clique
+        if (checkIfKCliqueExists(candidateSolution, candidateSolutionCopy, graph.getCliqueSize()))
+            return new Pair(graph.getCliqueSize(), candidateSolution);
+        
+        // If candidateSolutin does not contain k-clique, it is checked for other bigger possible cliques
+        // For exampls, if candidateSolution does not contain a 7-clique (which is the target),
+        // and a 5-clique is already found in previous solution,
+        // a 6-clique solution is attempted to be found
+        
+        // Create combinations based on candidateSolutions in the graph
+        int search_times = minClique + 1;
+        int possible = 0;
+        
+        while (search_times < graph.getCliqueSize())
+        {
+            /*for (int i = 0; i < candidateSolution.length; i++)
+            {
+                for (int j = 0; j < candidateSolution.length; j++)
+                {
+                    if (candidateSolution[i] != candidateSolution[j])
+                        possible += getEdgeListSizeFromNode(candidateSolution[i]);
+                }
+            }*/
+            
+            if(possible >= (search_times * search_times - 1) / 2)
+                continue;
+            
+            createCombination(candidateSolution, candidateSolution.length, search_times);
+
+            Iterator iter = edgesToCheck.iterator();
+
+            // Check every combination that has been created
+            while (iter.hasNext())
+            {
+                String line = iter.next().toString();
+                String tokenline = line.substring(1, line.length()-1);
+
+                String[] tokens = tokenline.split(", ");
+                int[] array = new int[tokens.length];
+                int[] array2 = new int[tokens.length];
+
+                for (int a = 0; a < tokens.length; a++)
+                {
+                    array[a] = Integer.parseInt(tokens[a]); 
+                    array2[a] = Integer.parseInt(tokens[a]);
                 }
 
+                if (checkIfKCliqueExists(array, array2, search_times))
+                    return new Pair(search_times, array);
+            }
+            
+            search_times++;
+        }
+ 
+        return new Pair<>(-1, candidateSolution);
+    }
+    
+    public static boolean checkIfKCliqueExists(int[] arr1, int[] arr2, int value)
+    {
+        // Check if candidateSolution contains k-clique
+        int count = 0;
+        
+        //System.out.println(Arrays.toString(arr1));
+        
+        for (int k = 0; k < arr1.length; k++)
+        {
+            //System.out.println("Checking node " + arr1[k]);
+            
+            for (int l = 0; l < arr2.length; l++)
+            {
+                if (k != l)
+                {
+                    //System.out.println("Checking if node " + arr1[k] + " is in node " + arr2[l]);
+                    if (valueExistsInArrayList(arr1[k], getEdgeListFromNode(arr2[l])))
+                        count++;
+                }
             }
 
-            loop_counter++;
-
-            if(counter >= (graph.getCliqueSize() * (graph.getCliqueSize() - 1)))
-            {
-                System.out.println("Stage 3: Clique found!");
-                System.out.println(Arrays.toString(array1));
-                return true; 
-            }       
         }
-             
-        System.out.println("Stage 3: Clique not found!");
-        return false;
+
+        if(count >= (value * (value - 1)))
+        {
+            //System.out.println("" + value + "- clique found: " + Arrays.toString(arr1));
+            return true;
+        }
+        
+        else
+            return false;
     }
     
     /**
@@ -410,6 +547,22 @@ public class NonExactSolution {
         return null;
     }
     
+    /**
+     * This function returns the edge list based on a given node ID
+     * @param value nodeID
+     * @return edgeList of node with nodeID
+     */
+    public static int getEdgeListSizeFromNode(int value)
+    {
+        for (Node n: newTempList)
+        {
+            if (n.getNodeID() == value)
+                return n.getEdgeList().size();
+        }
+        
+        return 0;
+    }
+        
     /**
      * This function is to print out a special line, mainly for the use of menus
      * @param no no of characters in the line
